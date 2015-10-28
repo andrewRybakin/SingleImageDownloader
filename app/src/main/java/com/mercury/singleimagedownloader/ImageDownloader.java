@@ -2,28 +2,16 @@ package com.mercury.singleimagedownloader;
 
 import android.content.Context;
 import android.content.Loader;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -41,7 +29,7 @@ public class ImageDownloader extends Loader<File> {
         super(c);
         imageUrl = new URL(url);
         context = c;
-        pb=pbr;
+        pb = pbr;
         Log.d(LOG_TAG, "create ImageLoader");
     }
 
@@ -72,30 +60,30 @@ public class ImageDownloader extends Loader<File> {
         @Override
         protected void onProgressUpdate(Integer... values) {
             pb.setProgress(values[0] * 100 / totalSize);
-            Log.d(LOG_TAG, values[0]*100/totalSize+" downloaded");
+            Log.d(LOG_TAG, values[0] * 100 / totalSize + " downloaded");
             super.onProgressUpdate(values);
         }
 
         @Override
         protected File doInBackground(Void... params) {
-            InputStream iR=null;
-            OutputStream oR=null;
+            InputStream iR = null;
+            OutputStream oR = null;
             try {
                 f = new File("/sdcard/aaa.jpg");
-                if(f.length()>0){
+                if (f.length() > 0) {
                     f.delete();
                     f.createNewFile();
                 }
                 URLConnection urlConnection = imageUrl.openConnection();
                 totalSize = urlConnection.getContentLength();
                 iR = imageUrl.openStream();
-                oR=new FileOutputStream(f);
+                oR = new FileOutputStream(f);
                 byte buf[] = new byte[1024];
                 int readBytes;
-                int progress=0;
+                int progress = 0;
                 while ((readBytes = iR.read(buf)) != -1) {
                     oR.write(buf, 0, readBytes);
-                    progress+=readBytes;
+                    progress += readBytes;
                     publishProgress(progress);
                     SystemClock.sleep(100);
                 }
@@ -103,8 +91,7 @@ public class ImageDownloader extends Loader<File> {
                 e.printStackTrace();
                 abandon();
                 return null;
-            }
-            finally {
+            } finally {
                 try {
                     if (iR != null) {
                         iR.close();
@@ -112,8 +99,8 @@ public class ImageDownloader extends Loader<File> {
                     if (oR != null) {
                         oR.close();
                     }
-                }catch(IOException e){
-                    Log.e(LOG_TAG, "IOException on closing: "+e.getMessage());
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, "IOException on closing: " + e.getMessage());
                 }
             }
             return f;
