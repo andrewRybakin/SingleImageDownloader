@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">SingleImageDownloader</string>
     <string name="action_settings">Settings</string>
-    <string name="image_URL">http://192.168.1.104:8080/image.jpg</string>
+    <string name="image_URL">http://images.wikia.com/scrubs/images/8/8e/7x5_Hooch_is_Crazy.jpg</string>
     <string name="state_standby">Standby</string>
     <string name="state_downloading">Downloading&#8230;</string>
     <string name="state_downloaded">Complete!</string>

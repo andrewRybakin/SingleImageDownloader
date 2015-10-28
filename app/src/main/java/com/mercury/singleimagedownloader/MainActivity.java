@@ -21,8 +21,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     private static final String LOG_TAG = "MainActivity";
 
-    private static ProgressBar progressBar;
-    private static Button button;
+    private ProgressBar progressBar;
+    private Button button;
 
     private TextView textView;
     ImageDownloader imageDownloader;
@@ -56,13 +56,12 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         button.setText(R.string.button_wait);
         button.setEnabled(false);
         getLoaderManager().initLoader(0, null, this);
-        //broadcast local broadcast manager
     }
 
     @Override
     public Loader onCreateLoader(int id, Bundle args) {
         try {
-            imageDownloader = new ImageDownloader(getApplicationContext(), getString(R.string.image_URL));
+            imageDownloader = new ImageDownloader(getApplicationContext(), getString(R.string.image_URL), progressBar);
         } catch (MalformedURLException e) {
             Toast.makeText(getApplicationContext(), "Bad URL: " + e.getMessage(), Toast.LENGTH_LONG).show();
             return null;
@@ -74,7 +73,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     public void onLoadFinished(Loader loader, Object data) {
         Log.d(LOG_TAG, "onLoadFinished");
-        //progressUpdater.interrupt();
         progressBar.setVisibility(View.INVISIBLE);
         textView.setText(R.string.state_downloaded);
         button.setText(R.string.button_show);
@@ -94,10 +92,5 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     public void onLoaderReset(Loader loader) {
         Log.d(LOG_TAG, "onLoadReset");
-    }
-
-    public static void updateProgress(int now, int max) {
-        progressBar.setProgress(now);
-        progressBar.setMax(max);
     }
 }

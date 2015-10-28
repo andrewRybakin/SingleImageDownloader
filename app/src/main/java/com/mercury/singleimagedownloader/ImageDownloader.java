@@ -7,7 +7,9 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
+import android.os.SystemClock;
 import android.util.Log;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import java.io.BufferedOutputStream;
@@ -32,13 +34,14 @@ public class ImageDownloader extends Loader<File> {
     private Context context;
     private ImageLoader l;
     private int totalSize;
-    private int downloadedSize;
+    private ProgressBar pb;
     private File f;
 
-    public ImageDownloader(Context c, String url) throws MalformedURLException {
+    public ImageDownloader(Context c, String url, ProgressBar pbr) throws MalformedURLException {
         super(c);
         imageUrl = new URL(url);
         context = c;
+        pb=pbr;
         Log.d(LOG_TAG, "create ImageLoader");
     }
 
@@ -64,32 +67,54 @@ public class ImageDownloader extends Loader<File> {
         if (f.exists()) f.delete();
     }
 
-    private class ImageLoader extends AsyncTask<Void, Void, File> {
+    private class ImageLoader extends AsyncTask<Void, Integer, File> {
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            pb.setProgress(values[0] * 100 / totalSize);
+            Log.d(LOG_TAG, values[0]*100/totalSize+" downloaded");
+            super.onProgressUpdate(values);
+        }
 
         @Override
         protected File doInBackground(Void... params) {
+            InputStream iR=null;
+            OutputStream oR=null;
             try {
-                f = new File(context.getFilesDir(), "temp.jpg");
+                f = new File("/sdcard/aaa.jpg");
+                if(f.length()>0){
+                    f.delete();
+                    f.createNewFile();
+                }
                 URLConnection urlConnection = imageUrl.openConnection();
                 totalSize = urlConnection.getContentLength();
-                Log.d(LOG_TAG,totalSize+"");
-                InputStream iR = imageUrl.openStream();
-                OutputStream oR=new FileOutputStream(f);
+                iR = imageUrl.openStream();
+                oR=new FileOutputStream(f);
                 byte buf[] = new byte[1024];
-                downloadedSize = 0;
                 int readBytes;
+                int progress=0;
                 while ((readBytes = iR.read(buf)) != -1) {
-                    oR.write(buf);
-                    downloadedSize += readBytes;
-                    MainActivity.updateProgress(downloadedSize, totalSize);
+                    oR.write(buf, 0, readBytes);
+                    progress+=readBytes;
+                    publishProgress(progress);
+                    SystemClock.sleep(100);
                 }
-                Log.d(LOG_TAG, downloadedSize + "");
-                iR.close();
-                oR.close();
             } catch (IOException e) {
                 e.printStackTrace();
                 abandon();
                 return null;
+            }
+            finally {
+                try {
+                    if (iR != null) {
+                        iR.close();
+                    }
+                    if (oR != null) {
+                        oR.close();
+                    }
+                }catch(IOException e){
+                    Log.e(LOG_TAG, "IOException on closing: "+e.getMessage());
+                }
             }
             return f;
         }
