@@ -70,7 +70,7 @@ public class ImageDownloader extends Loader<File> {
             OutputStream oR = null;
             try {
                 f = new File("/sdcard/aaa.jpg");
-                if (f.length() > 0) {
+                if (f.exists()) {
                     f.delete();
                     f.createNewFile();
                 }
@@ -85,10 +85,10 @@ public class ImageDownloader extends Loader<File> {
                     oR.write(buf, 0, readBytes);
                     progress += readBytes;
                     publishProgress(progress);
-                    SystemClock.sleep(100);
+                    SystemClock.sleep(100); //Эт так, чтоб убедиться что прогрессбар рпаботает
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(LOG_TAG, "IOException on opening/reading/writing: " + e.getMessage());
                 abandon();
                 return null;
             } finally {
