@@ -62,7 +62,7 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
         super.onStopLoading();
         Log.d(LOG_TAG, "onStopLoading");
         if(l!=null)l.cancel(true);
-        abandoned=true;
+        if(l.getProgress()<100)abandoned=true;
     }
 
     @Override
@@ -89,6 +89,12 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
             super.onProgressUpdate(values);
         }
 
+        public int getProgress() {
+            return progress*100/totalSize;
+        }
+
+        public int progress;
+
         @Override
         protected File doInBackground(Void... params) {
             InputStream iR = null;
@@ -99,7 +105,7 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
                 oR = new FileOutputStream(f);
                 byte buf[] = new byte[1024];
                 int readBytes;
-                int progress = 0;
+                progress = 0;
                 while ((readBytes = iR.read(buf)) != -1) {
                     oR.write(buf, 0, readBytes);
                     progress += readBytes;
