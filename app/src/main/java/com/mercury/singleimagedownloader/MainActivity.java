@@ -28,8 +28,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         STANDBY, DOWNLOADING, COMPLETE
     }
 
-    ;
-
     private STATE state;
 
     private ProgressBar progressBar;
