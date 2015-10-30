@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.Loader;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -57,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             public void onClick(View v) {
                 try {
                     if (imageDownloader != null) {
-                        imageDownloader.begin(getString(R.string.image_URL), Environment.getExternalStorageDirectory()+"/temp.jpg");
+                        imageDownloader.begin(getString(R.string.image_URL), "temp.jpg");
                         loadingBegins();
                     }
                 } catch (IOException e) {
@@ -105,6 +104,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     public void onLoadFinished(Loader loader, Object data) {
         Log.d(LOG_TAG, "onLoadFinished + " + (data == null));
         if (data != null) {
+
             imageFile = (File) data;
             loadComplete();
         } else {

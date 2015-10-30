@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -23,7 +22,7 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
     private ImageLoader l;
     private int totalSize;
     private ProgressBar pb;
-    private static File f;
+    private FileOutputStream fOutput;
     private URLConnection urlConnection;
     private boolean abandoned;
 
@@ -39,14 +38,10 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
         pb=bar;
     }
 
-    public void begin(String url, String path) throws IOException{
+    public void begin(String url, String name) throws IOException{
         imageUrl=new URL(url);
         urlConnection = imageUrl.openConnection();
-        f = new File(path);
-        if (f.exists()) {
-            f.delete();
-            f.createNewFile();
-        }
+        fOutput=getContext().openFileOutput(name, 1);
         forceLoad();
     }
 
@@ -61,8 +56,10 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
     protected void onStopLoading() {
         super.onStopLoading();
         Log.d(LOG_TAG, "onStopLoading");
-        if(l!=null)l.cancel(true);
-        if(l.getProgress()<100)abandoned=true;
+        if(l!=null){
+            l.cancel(true);
+            if(l.getProgress()<100)abandoned=true;
+        }
     }
 
     @Override
@@ -98,27 +95,27 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
         @Override
         protected File doInBackground(Void... params) {
             InputStream iR = null;
-            OutputStream oR = null;
+            File f;
             try {
                 totalSize = urlConnection.getContentLength();
                 iR = urlConnection.getInputStream();
-                oR = new FileOutputStream(f);
                 byte buf[] = new byte[1024];
                 int readBytes;
                 progress = 0;
                 while ((readBytes = iR.read(buf)) != -1) {
-                    oR.write(buf, 0, readBytes);
+                    fOutput.write(buf, 0, readBytes);
                     progress += readBytes;
                     publishProgress(progress);
                     SystemClock.sleep(100); //Эт так, чтоб убедиться что прогрессбар работает
                 }
             } catch (IOException e) {
                 Log.e(LOG_TAG, "IOException on opening/reading/writing: " + e.getMessage());
-                f=null;
+                return null;
             } finally {
                 try {
                     if (iR != null) iR.close();
-                    if (oR != null) oR.close();
+                    if (fOutput != null) fOutput.close();
+                    f=new File(getContext().getFilesDir().getAbsolutePath()+"/temp.jpg");
                 } catch (IOException e) {
                     Log.e(LOG_TAG, "IOException on closing: " + e.getMessage());
                     f=null;
