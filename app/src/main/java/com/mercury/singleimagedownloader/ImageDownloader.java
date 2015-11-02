@@ -26,7 +26,9 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
     private URLConnection urlConnection;
     private boolean abandoned;
 
-    public static Parcelable CREATOR;
+    //  Данное поле требует AndroidStudio, ибо в документации указано, что ежели я имплементю Parcelable,
+    //  то мой класс должен содержать сие поле...
+    public static Parcelable CREATOR=null;
     public static final String PROGRESS_EXTRA = "progressExtra";
     public static final String INTENT_P_UPDATE = "updateProgress";
     public static final int STATE_STANDBY = 0;
