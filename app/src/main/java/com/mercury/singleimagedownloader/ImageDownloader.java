@@ -1,13 +1,14 @@
 package com.mercury.singleimagedownloader;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.Loader;
 import android.os.AsyncTask;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.ProgressBar;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,46 +20,59 @@ import java.net.URLConnection;
 public class ImageDownloader extends Loader<File> implements Parcelable {
     private static final String LOG_TAG = "ImageDownloader";
     private URL imageUrl;
-    private ImageLoader l;
+    private ImageLoader loader;
     private int totalSize;
-    private ProgressBar pb;
     private FileOutputStream fOutput;
     private URLConnection urlConnection;
     private boolean abandoned;
 
     public static Parcelable CREATOR;
+    public static final String PROGRESS_EXTRA = "progressExtra";
+    public static final String INTENT_P_UPDATE = "updateProgress";
+    public static final int STATE_STANDBY = 0;
+    public static final int STATE_DOWNLOADING = 1;
+    public static final int STATE_COMPLETE = 2;
 
-    public ImageDownloader(Context c, ProgressBar pbr) {
+    private static int state = STATE_STANDBY;
+
+    public static void setState(int newState) {
+        state = newState;
+    }
+
+    public static boolean isDownloading() {
+        return state == STATE_DOWNLOADING;
+    }
+
+    public static boolean isComplete() {
+        return state == STATE_DOWNLOADING;
+    }
+
+    public ImageDownloader(Context c) {
         super(c);
-        pb = pbr;
         Log.d(LOG_TAG, "create ImageLoader");
     }
 
-    public void newProgressBar(ProgressBar bar){ //Боюсь, такой метод является еретическим... Но выполняется он исключительно при повороте
-        pb=bar;
-    }
-
-    public void begin(String url, String name) throws IOException{
-        imageUrl=new URL(url);
+    public void begin(String url, String name) throws IOException {
+        imageUrl = new URL(url);
         urlConnection = imageUrl.openConnection();
-        fOutput=getContext().openFileOutput(name, 1);
+        fOutput = getContext().openFileOutput(name, 1);
         forceLoad();
     }
 
     @Override
     protected void onForceLoad() {
         super.onForceLoad();
-        l=new ImageLoader();
-        l.execute();
+        loader = new ImageLoader();
+        loader.execute();
     }
 
     @Override
     protected void onStopLoading() {
         super.onStopLoading();
         Log.d(LOG_TAG, "onStopLoading");
-        if(l!=null){
-            l.cancel(true);
-            if(l.getProgress()<100)abandoned=true;
+        if (loader != null) {
+            loader.cancel(true);
+            if (loader.getProgress() < 100) abandoned = true;
         }
     }
 
@@ -81,13 +95,13 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
 
         @Override
         protected void onProgressUpdate(Integer... values) {
-            pb.setProgress(values[0] * 100 / totalSize);
-            Log.d(LOG_TAG, values[0] * 100 / totalSize + " downloaded");
+            LocalBroadcastManager.getInstance(getContext()).sendBroadcast(
+                    (new Intent(INTENT_P_UPDATE)).putExtra(PROGRESS_EXTRA, values[0] * 100 / totalSize).setType("text/*"));
             super.onProgressUpdate(values);
         }
 
         public int getProgress() {
-            return progress*100/totalSize;
+            return progress * 100 / totalSize;
         }
 
         public int progress;
@@ -115,10 +129,10 @@ public class ImageDownloader extends Loader<File> implements Parcelable {
                 try {
                     if (iR != null) iR.close();
                     if (fOutput != null) fOutput.close();
-                    f=new File(getContext().getFilesDir().getAbsolutePath()+"/temp.jpg");
+                    f = new File(getContext().getFilesDir().getAbsolutePath() + "/temp.jpg");
                 } catch (IOException e) {
                     Log.e(LOG_TAG, "IOException on closing: " + e.getMessage());
-                    f=null;
+                    f = null;
                 }
             }
             return f;

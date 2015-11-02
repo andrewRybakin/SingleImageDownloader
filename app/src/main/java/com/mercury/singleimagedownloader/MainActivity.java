@@ -1,10 +1,14 @@
 package com.mercury.singleimagedownloader;
 
 import android.app.LoaderManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.Loader;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -21,13 +25,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     private static final String LOG_TAG = "MainActivity";
     private static final String KEY_DOWNLOADING = "com.mercury.singleimagedownloader.MainActivity.isDownloading";
-    private static final String KEY_DOWNLODER_OBJECT = "com.mercury.singleimagedownloader.MainActivity.downloaderObject";
-
-    private enum STATE {
-        STANDBY, DOWNLOADING, COMPLETE
-    }
-
-    private STATE state;
+    private static final String KEY_DOWNLOADER_OBJECT = "com.mercury.singleimagedownloader.MainActivity.downloaderObject";
 
     private ProgressBar progressBar;
     private Button button;
@@ -50,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         progressBar.setVisibility(View.INVISIBLE);
         textView.setText(R.string.state_standby);
         button.setText(R.string.button_start);
-        state = STATE.STANDBY;
+        ImageDownloader.setState(ImageDownloader.STATE_STANDBY);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -60,10 +58,17 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                         loadingBegins();
                     }
                 } catch (IOException e) {
-                    сказатьТост("IO Error: " + e.getMessage());
+                    sayToast("IO Error: " + e.getMessage());
                 }
             }
         });
+        LocalBroadcastManager.getInstance(getApplicationContext())
+                .registerReceiver(new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        progressBar.setProgress(intent.getIntExtra(ImageDownloader.PROGRESS_EXTRA, 0));
+                    }
+                }, IntentFilter.create(ImageDownloader.INTENT_P_UPDATE, "text/*"));
 
         getLoaderManager().initLoader(0, null, this);
     }
@@ -72,31 +77,29 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putBoolean(KEY_DOWNLOADING, (state == STATE.DOWNLOADING));
-        if ((state != STATE.COMPLETE) && (imageDownloader != null))
-            outState.putParcelable(KEY_DOWNLODER_OBJECT, imageDownloader);
+        outState.putBoolean(KEY_DOWNLOADING, ImageDownloader.isDownloading());
+        if ((!ImageDownloader.isComplete()) && (imageDownloader != null))
+            outState.putParcelable(KEY_DOWNLOADER_OBJECT, imageDownloader);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if(getLoaderManager().getLoader(0).isAbandoned()) loadingRollback();
+        if (getLoaderManager().getLoader(0).isAbandoned()) loadingRollback();
     }
 
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        imageDownloader = savedInstanceState.getParcelable(KEY_DOWNLODER_OBJECT);
-        Log.d(LOG_TAG, state.name());
-        if (imageDownloader != null)
-            imageDownloader.newProgressBar(progressBar);
+        imageDownloader = savedInstanceState.getParcelable(KEY_DOWNLOADER_OBJECT);
+        //Log.d(LOG_TAG, state.name());
         if (savedInstanceState.getBoolean(KEY_DOWNLOADING))
             loadingBegins();
     }
 
     @Override
     public Loader onCreateLoader(int id, Bundle args) {
-        if (id == 0) imageDownloader = new ImageDownloader(getApplicationContext(), progressBar);
+        if (id == 0) imageDownloader = new ImageDownloader(getApplicationContext());
         return imageDownloader;
     }
 
@@ -104,13 +107,12 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     public void onLoadFinished(Loader loader, Object data) {
         Log.d(LOG_TAG, "onLoadFinished + " + (data == null));
         if (data != null) {
-
             imageFile = (File) data;
             loadComplete();
         } else {
             loadingRollback();
             loader.reset();
-            сказатьТост("There was an error occurred while downloading. Try later");
+            sayToast("There was an error occurred while downloading. Try later");
         }
     }
 
@@ -121,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     private void loadingBegins() {
         Log.d(LOG_TAG, "Begin");
-        state = STATE.DOWNLOADING;
+        ImageDownloader.setState(ImageDownloader.STATE_DOWNLOADING);
         progressBar.setVisibility(View.VISIBLE);
         textView.setText(R.string.state_downloading);
         button.setText(R.string.button_wait);
@@ -130,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     private void loadingRollback() {
         Log.d(LOG_TAG, "Rollback");
-        state = STATE.STANDBY;
+        ImageDownloader.setState(ImageDownloader.STATE_STANDBY);
         progressBar.setVisibility(View.INVISIBLE);
         textView.setText(R.string.state_standby);
         button.setText(R.string.button_start);
@@ -139,7 +141,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     private void loadComplete() {
         Log.d(LOG_TAG, "Complete!");
-        state = STATE.COMPLETE;
+        ImageDownloader.setState(ImageDownloader.STATE_COMPLETE);
         progressBar.setVisibility(View.INVISIBLE);
         textView.setText(R.string.state_downloaded);
         button.setText(R.string.button_show);
@@ -154,7 +156,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         });
     }
 
-    private void сказатьТост(String tost) {
+    private void sayToast(String tost) {
         Toast.makeText(getApplicationContext(), tost, Toast.LENGTH_LONG).show();
     }
 }
